@@ -115,12 +115,16 @@ const syncFromPosgresToModel = async (result, object) => {
     } = column;
     object[column_name] = {
       type: map[data_type],
-      allowNull: is_nullable === "YES" ? true : false,
-      unique: is_unique === 'YES' ? true : false,
-      primaryKey: column_default ? column_default.includes('nextval') : false,
-      autoIncrement: column_default ? column_default.includes('nextval') : false
+      // allowNull: is_nullable === "YES" ? true : false,
+      ...(is_nullable !== "YES" && { allowNull: false }),
+      // unique: is_unique === 'YES' ? true : false,
+      ...(is_unique === "YES" && { unique: true }),
+      // primaryKey: column_default ? column_default.includes('nextval') : false,
+      ...(column_default?.includes('nextval') && { primaryKey: column_default.includes('nextval') }),
+      // autoIncrement: column_default ? column_default.includes('nextval') : false
+      ...(column_default?.includes('nextval') && { autoIncrement: column_default.includes('nextval') }),
     };
-    object[column_name] = deleteUndefinedField(object[column_name])
+    // object[column_name] = deleteUndefinedField(object[column_name])
 
     if (column_default && !column_default.includes('nextval')) {
       const defaultValueMatch = column_default.match(/'(.+)'/);
