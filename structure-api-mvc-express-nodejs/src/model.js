@@ -20,13 +20,13 @@ const close = () => {
 }
 
 connection()
-const getAllUsersByEmail = async (email) => {
+export const getAllUsers = async (arg) => {
   const results = await sequelize.query(`
-    BEGIN;
-SELECT `+ `${Function["get_all_users_by_email_into_cursor"]["call_function"]}` + ` ;
-FETCH ALL  from  mycursor;
-COMMIT;`, {
-    replacements: [email],
+            BEGIN;
+        SELECT get_all_users_by_email_into_cursor(?);
+        FETCH ALL  from  mycursor;
+        COMMIT;`, {
+    replacements: [arg],
     raw: true // Use replacements to safely pass parameters
   })
   close()
@@ -34,5 +34,17 @@ COMMIT;`, {
   console.log(results[0])
   return results[0]
 }
-getAllUsersByEmail('abc')
-// export const model = { getAllUsersByEmail }
+export const getAllUsers1 = async (arg, arg1) => {
+  const results = await sequelize.query(`
+            BEGIN;
+        SELECT get_all_users_by_email_into_cursor_1(?,?);
+        FETCH ALL  from  mycursor;
+        COMMIT;`, {
+    replacements: [arg, arg1],
+    raw: true // Use replacements to safely pass parameters
+  })
+  close()
+  results[0].shift()
+  console.log(results[0])
+  return results[0]
+}

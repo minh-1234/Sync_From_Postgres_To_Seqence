@@ -18,10 +18,10 @@ const connection = async () => {
 const close = () => {
   sequelize.close()
 }
-const content = (object) => {
-  return `module.exports = ` + JSON.stringify(object, null, 2);
+const mapFunction = {
+  "get_all_users_by_email_into_cursor": "getAllUsers",
+  "get_all_users_by_email_into_cursor_1": "getAllUsers1"
 }
-
 const map = {
   'integer': "DataTypes.INTEGER",
   'boolean': "DataTypes.BOOLEAN",
@@ -43,14 +43,75 @@ const getAllFunctionInDB = async (schema_name) => {
     raw: true // Use replacements to safely pass parameters
   })
   close()
-  console.log(results[0])
   return results[0]
+}
+const contentFileFuntion = (object) => {
+  return `module.exports = ` + JSON.stringify(object, null, 2);
+}
+const contentFileModel = (object) => {
+  let result = `const { Sequelize } = require("sequelize")
+const Function = require('../src/test3.js')
+const sequelize = new Sequelize("project_intern", "guest", "12345", {
+  host: "localhost",
+  dialect: 'postgres',
+  port: 5432
+})
+
+const connection = async () => {
+  try {
+    await sequelize.authenticate();
+    console.log('Connection has been established successfully.');
+  } catch (error) {
+    console.error('Unable to connect to the database:', error);
+  }
+}
+
+const close = () => {
+  sequelize.close()
+}
+
+connection()\n`
+  for (const key in object) {
+    if (object.hasOwnProperty(key)) {
+      const func = object[key];
+      const placeholders = func.arguments.map((value) => `${value.name}`).join(',');
+      let content = `export const ${key} = async(${placeholders})=>{
+        const results = await sequelize.query(` + `\`
+            BEGIN;
+        SELECT ${func.call_function};
+        FETCH ALL  from  mycursor;
+        COMMIT;\`` + `, {
+            replacements: [${placeholders}],
+            raw: true // Use replacements to safely pass parameters
+          })
+          close()
+          results[0].shift()
+          console.log(results[0])
+          return results[0]
+        }`
+      result += content + '\n'
+    }
+  }
+  return result
 }
 const readline = require('node:readline');
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
 });
+function parseVariables(inputString) {
+  // Tách chuỗi thành từng cặp bằng dấu phẩy
+  const pairs = inputString.split(", ");
+  const result = [];
+
+  pairs.forEach(pair => {
+    const parts = pair.trim().split(' ');
+    const name = parts[0]; // Phần đầu là tên biến
+    const type = parts.slice(1).join(" ");
+    result.push({ name, type: map[type] });
+  });
+  return result;
+}
 const syncFuntionFromPosgresToModel = async (result, object) => {
   result.forEach((column) => {
     const {
@@ -60,37 +121,25 @@ const syncFuntionFromPosgresToModel = async (result, object) => {
       function_definition,
     } = column;
     const input = arguments;
+    const types = parseVariables(input)
 
-    // Sử dụng Regular Expression để tìm các kiểu dữ liệu
-    const regex = /\b(character varying|integer|boolean|date|text)\b/g;
-
-    // Trích xuất các kiểu dữ liệu
-    const types = [];
-    let match;
-    while ((match = regex.exec(input)) !== null) {
-      types.push(map[match[0]]);
-    }
-
-    // Kết quả dạng tuple
-    const tuple = [...types];
-    const placeholders = tuple.map(() => '?').join(',');
-    object[function_name] = {
-      arguments: tuple,
+    const placeholders = types.map(() => '?').join(',');
+    object[mapFunction[function_name]] = {
+      arguments: types,
       return_type: return_type,
       call_function: `${function_name}(${placeholders})`
     };
+
   })
   return object
 }
 rl.question("Enter database and table: ", async (input) => {
-  const [schema_name] = input.split(' '); // Split input by space
-
   await connection();
   const result = await getAllFunctionInDB(input = 'public')
 
   const object = await syncFuntionFromPosgresToModel(result, {})
-  // fs.writeFileSync('../../src/test3.js', content(object), "utf8");
-  fs.writeFileSync('test3.js', content(object), "utf8");
-  console.log(object)
+  // viet vao 2 file 
+  fs.writeFileSync('test3.js', contentFileFuntion(object), "utf8");
+  fs.writeFileSync('model.js', contentFileModel(object), "utf8");
   rl.close();
 });
