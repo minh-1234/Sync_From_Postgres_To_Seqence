@@ -92,18 +92,20 @@ const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
 });
-const deleteUndefinedField = (obj) => {
-  Object.keys(obj).forEach((key) => {
-    if (obj[key] === false && key !== 'allowNull') {
-      delete (obj[key])
-    }
-    else if (key === 'allowNull' && obj[key] === true) {
-      delete (obj[key])
-    }
-  })
-  return obj
-}
+
+// const deleteUndefinedField = (obj) => {
+//   Object.keys(obj).forEach((key) => {
+//     if (obj[key] === false && key !== 'allowNull') {
+//       delete (obj[key])
+//     }
+//     else if (key === 'allowNull' && obj[key] === true) {
+//       delete (obj[key])
+//     }
+//   })
+//   return obj
+// }
 // dong bo tuwf db sang model
+
 const syncFromPosgresToModel = async (result, object) => {
   result.forEach((column) => {
     const {
@@ -142,7 +144,7 @@ rl.question("Enter database and table: ", async (input) => {
   const result = await GetDB(database, table)
 
   const object = await syncFromPosgresToModel(result, {})
-  fs.writeFileSync('../../src/test2.js', content(object), "utf8");
+  fs.writeFileSync('test2.js', content(object), "utf8");
   console.log(object)
   rl.close();
 });
