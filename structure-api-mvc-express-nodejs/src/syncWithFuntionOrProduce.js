@@ -133,6 +133,7 @@ const syncFuntionFromPosgresToModel = async (result, object) => {
   })
   return object
 }
+
 rl.question("Enter database and table: ", async (input) => {
   await connection();
   const result = await getAllFunctionInDB(input = 'public')
